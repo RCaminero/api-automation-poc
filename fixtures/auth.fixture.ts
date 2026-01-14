@@ -1,4 +1,4 @@
-import { test as base } from '@playwright/test';
+import { test as base, expect } from '@playwright/test';
 import { login } from '../services/auth.services';
 
 type Fixtures = {
@@ -7,9 +7,10 @@ type Fixtures = {
 
 export const test = base.extend<Fixtures>({
   authToken: async ({ request }, use) => {
-    const token = await login(request);
-    await use(token);
+    const response = await login(request);
+    const body = await response.json();
+    await use(body.token);
   },
 });
 
-export { expect } from '@playwright/test';
+export { expect };
