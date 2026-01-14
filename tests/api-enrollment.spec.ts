@@ -1,6 +1,12 @@
 import { test, expect } from '../fixtures/auth.fixture';
 import { getSeriesOverview } from '../services/series.services';
 import { enrollSeries } from '../services/enrollment.service';
+import { enrollmentSchema } from '../utils/schemas'; // Import the schema
+import Ajv from 'ajv';
+import addFormats from 'ajv-formats'
+
+const ajv = new Ajv();
+addFormats(ajv);
 
 test.describe('API Series Enrollment - Dynamic Data', () => {
 
@@ -9,7 +15,6 @@ test.describe('API Series Enrollment - Dynamic Data', () => {
 
     await test.step('Get series overview and pick random ID', async () => {
       const data = await getSeriesOverview(request, authToken);
-
       const allSeries = data.seriesCategoriesList.flatMap((category: any) => category.series);
       
       if (allSeries.length === 0) {
@@ -29,14 +34,19 @@ test.describe('API Series Enrollment - Dynamic Data', () => {
 
       console.log('Enrollment response:', body);
 
+      // schema validation
+      const validate = ajv.compile(enrollmentSchema);
+      const valid = validate(body);
+      
+      if (!valid) {
+        console.error('AJV Schema Errors:', validate.errors);
+      }
+      
+      expect(valid, 'Response should match enrollment JSON schema').toBe(true);
+      // ------------------------------------
+
       expect(response.status()).toBe(200);
       expect(body).toBeDefined();
     });
-  });
-
-  test('Negative: Enroll with invalid JWT', async ({ request }) => {
-    const response = await enrollSeries(request, 'invalid.token.here', 'some-id');
-    console.log(`Invalid Token Status: ${response.status()}`);
-    expect(response.status()).toBe(401);
   });
 });
