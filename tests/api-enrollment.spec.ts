@@ -1,29 +1,42 @@
 import { test, expect } from '../fixtures/auth.fixture';
 import { getSeriesOverview } from '../services/series.services';
 import { enrollSeries } from '../services/enrollment.service';
-import { credentials } from '../utils/env';
 
-test.describe('POC: API Automation - Series Enrollment', () => {
+test.describe('API Series Enrollment - Dynamic Data', () => {
 
-  test('Authenticated user can enroll into a series', async ({ request, authToken }) => {
+  test('Should enroll to a random series from the overview page', async ({ request, authToken }) => {
+    let selectedSeriesId: string;
 
-    await test.step('Get series overview', async () => {
-      const series = await getSeriesOverview(request, authToken);
-      expect(series).toBeDefined();
+    await test.step('Get series overview and pick random ID', async () => {
+      const data = await getSeriesOverview(request, authToken);
+
+      const allSeries = data.seriesCategoriesList.flatMap((category: any) => category.series);
+      
+      if (allSeries.length === 0) {
+        throw new Error('No series found in the API response!');
+      }
+
+      const randomIndex = Math.floor(Math.random() * allSeries.length);
+      const randomSeries = allSeries[randomIndex];
+      
+      selectedSeriesId = randomSeries.id;
+      console.log(`Targeting Series: "${randomSeries.name}" with ID: ${selectedSeriesId}`);
     });
 
-    await test.step('Enroll user into series', async () => {
-      const result = await enrollSeries(
-        request,
-        authToken,
-        credentials.series_id
-      );
+    await test.step('Enroll and verify', async () => {
+      const response = await enrollSeries(request, authToken, selectedSeriesId);
+      const body = await response.json();
 
-      expect(result).toBeDefined();
-      console.log('User enrolled successfully', result);
+      console.log('Enrollment response:', body);
 
+      expect(response.status()).toBe(200);
+      expect(body).toBeDefined();
     });
-
   });
 
+  test('Negative: Enroll with invalid JWT', async ({ request }) => {
+    const response = await enrollSeries(request, 'invalid.token.here', 'some-id');
+    console.log(`Invalid Token Status: ${response.status()}`);
+    expect(response.status()).toBe(401);
+  });
 });

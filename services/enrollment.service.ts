@@ -1,4 +1,4 @@
-import { APIRequestContext, expect } from '@playwright/test';
+import { APIRequestContext } from '@playwright/test';
 
 export async function enrollSeries(
   request: APIRequestContext,
@@ -9,15 +9,8 @@ export async function enrollSeries(
     headers: {
       Authorization: `Bearer ${token}`,
     },
-    data: {
-      series_id: seriesId,
-    },
+    data: { series_id: seriesId },
   });
 
-  if (response.status() !== 200) {
-    console.log('Enroll error:', await response.text());
-  }
-
-  expect(response.status()).toBe(200);
-  return response.json();
+  return response; // Devolvemos el objeto response completo para validar status en el test
 }
